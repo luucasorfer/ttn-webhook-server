@@ -8,14 +8,9 @@ app.use(express.json());
 await mongoose.connect(process.env.MONGO_URI);
 
 // Modelo
-const Uplink = mongoose.model(
-  "Uplink",
-  new mongoose.Schema({
-    deveui: String,
-    timestamp: Date,
-    payload: Object,
-  }),
-);
+await Uplink.create({
+  raw: req.body,
+});
 
 // Endpoint chamado pelo TTN Webhook
 app.post("/ttn", async (req, res) => {
