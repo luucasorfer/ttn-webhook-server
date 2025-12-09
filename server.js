@@ -24,11 +24,40 @@ app.post("/ttn", async (req, res) => {
     const body = req.body;
 
     const ts_original = body.uplink_message.received_at;
-    const ts_ptbr = new Date(ts_original).toLocaleString("pt-BR", {
+
+    // Date em UTC
+    const d_utc = new Date(ts_original);
+
+    // Date no fuso GMT-3 (America/Sao_Paulo)
+    const d_br = new Date(ts_original).toLocaleString("en-US", {
       timeZone: "America/Sao_Paulo",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
     });
 
-    console.log(`Dados enviaddos: ${ts_original} --> ${ts_ptbr}`);
+    // Formato UTC
+    const d_utc_fmt = d_utc.toLocaleString("en-US", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+
+    // Timestamp em ms
+    const ts_ms = d_utc.getTime();
+
+    // Impressão:
+    console.log("Dados enviados:");
+    console.log(`GMT-3: ${d_br}`);
+    console.log(`UTC: ${d_utc_fmt}`);
+    console.log(`Timestamp: ${ts_ms}`);
 
     await Uplink.create({
       deveui: body.end_device_ids.device_id,
