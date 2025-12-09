@@ -8,9 +8,15 @@ app.use(express.json());
 await mongoose.connect(process.env.MONGO_URI);
 
 // Modelo
-await Uplink.create({
-  raw: req.body,
-});
+const Uplink = mongoose.model(
+  "Uplink",
+  new mongoose.Schema({
+    deveui: String,
+    timestamp: Date,
+    payload: Object,
+    full_payload: Object,
+  }),
+);
 
 // Endpoint chamado pelo TTN Webhook
 app.post("/ttn", async (req, res) => {
@@ -21,6 +27,7 @@ app.post("/ttn", async (req, res) => {
       deveui: body.end_device_ids.device_id,
       timestamp: body.uplink_message.received_at,
       payload: body.uplink_message.decoded_payload,
+      full_payload: body, // aqui salva o JSON completo do TTN
     });
 
     res.status(200).send("OK");
@@ -31,4 +38,5 @@ app.post("/ttn", async (req, res) => {
 });
 
 // Start server
-app.listen(3000, () => console.log("Server OK"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server OK on port ${PORT}`));
