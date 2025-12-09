@@ -23,6 +23,13 @@ app.post("/ttn", async (req, res) => {
   try {
     const body = req.body;
 
+    const ts_original = body.uplink_message.received_at;
+    const ts_ptbr = new Date(ts_original).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+    });
+
+    console.log(`Dados enviaddos: ${ts_original} --> ${ts_ptbr}`);
+
     await Uplink.create({
       deveui: body.end_device_ids.device_id,
       timestamp: body.uplink_message.received_at,
