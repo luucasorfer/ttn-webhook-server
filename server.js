@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import winston from "winston";
 import { z } from "zod";
+import crypto from "crypto";
 
 const app = express();
 app.use(express.json());
@@ -70,7 +71,7 @@ const sensorReadingSchema = new mongoose.Schema(
     received_at: Date,
     created_at: { type: Date, default: Date.now },
 
-    // ID único para evitar duplicatas
+    // ID único para evitar duplicatas (gerado automaticamente)
     unique_id: { type: String, unique: true, sparse: true },
 
     // Payload completo para auditoria
@@ -90,7 +91,24 @@ sensorReadingSchema.index(
 
 const SensorReading = mongoose.model("SensorReading", sensorReadingSchema);
 
-// ===== VALIDAÇÃO =====
+// ===== FUNÇÃO AUXILIAR: Gerar unique_id =====
+function generateUniqueId(body) {
+  // Usar f_cnt (frame counter) + device_id + timestamp como base
+  const uplink = body.uplink_message;
+  const fcnt = uplink.f_cnt || 0;
+  const deviceId = body.end_device_ids.device_id;
+  const timestamp = uplink.received_at;
+
+  // Criar hash único
+  const data = `${deviceId}-${fcnt}-${timestamp}`;
+  return crypto
+    .createHash("sha256")
+    .update(data)
+    .digest("hex")
+    .substring(0, 16);
+}
+
+// ===== VALIDAÇÃO (SCHEMA FLEXÍVEL) =====
 const ttnWebhookSchema = z
   .object({
     uplink_message: z.object({
@@ -139,7 +157,6 @@ const ttnWebhookSchema = z
         application_id: z.string(),
       }),
     }),
-    unique_id: z.string(),
   })
   .passthrough(); // Permite campos adicionais
 
@@ -147,7 +164,9 @@ const ttnWebhookSchema = z
 app.post("/ttn", async (req, res) => {
   try {
     const body = req.body;
-    const unique_id = body.unique_id;
+
+    // Gerar unique_id automaticamente se não existir
+    const unique_id = body.unique_id || generateUniqueId(body);
 
     logger.info(`📨 Webhook recebido: ${unique_id}`);
 
@@ -155,7 +174,9 @@ app.post("/ttn", async (req, res) => {
     try {
       ttnWebhookSchema.parse(body);
     } catch (validationErr) {
-      logger.warn(`⚠️ Validação parcial: ${validationErr.message}`);
+      logger.warn(
+        `⚠️ Validação parcial: ${JSON.stringify(validationErr.errors)}`,
+      );
       // Continuar mesmo com validação parcial
     }
 
@@ -165,7 +186,7 @@ app.post("/ttn", async (req, res) => {
       logger.warn(`⚠️ Duplicata ignorada: ${unique_id}`);
       return res
         .status(200)
-        .json({ success: true, message: "Duplicata ignorada" });
+        .json({ success: true, message: "Duplicata ignorada", unique_id });
     }
 
     // Extrair dados
@@ -232,9 +253,14 @@ app.post("/ttn", async (req, res) => {
       temperature: temperature,
       humidity: humidity,
       rssi: rxMetadata.rssi,
+      unique_id: unique_id,
     });
 
-    res.status(200).json({ success: true, message: "Dados armazenados" });
+    res.status(200).json({
+      success: true,
+      message: "Dados armazenados",
+      unique_id: unique_id,
+    });
   } catch (err) {
     logger.error("❌ Erro ao processar webhook", err);
     res.status(500).json({ success: false, error: err.message });
