@@ -1,0 +1,28 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos de ambiente
+.env
+
+# Pastas de build (se houver)
+dist/
+build/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Cache do IDE
+.vscode/
+.idea/
+
+# Macros e arquivos temporários
+*.swp
+*.swo

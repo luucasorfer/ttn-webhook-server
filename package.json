@@ -8,10 +8,16 @@
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": ["iot", "lorawan", "ttn", "mongodb"],
+  "keywords": [
+    "iot",
+    "lorawan",
+    "ttn",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
     "winston": "^3.11.0",
